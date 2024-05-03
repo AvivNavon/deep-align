@@ -194,7 +194,7 @@ class DWSMatching(DWSModel):
         dropout_rate=0.0,
         add_skip=False,
         add_layer_skip=False,
-        init_scale=1e-4,
+        init_scale=1.0,
         init_off_diag_scale_penalty=1.0,
         bn=False,
         diagonal=False,

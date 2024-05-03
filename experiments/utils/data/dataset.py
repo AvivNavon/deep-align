@@ -74,7 +74,6 @@ class MultiViewMatchingBatch(NamedTuple):
     perm_biases_view_1: Tuple
     perms_view_0: Tuple
     perms_view_1: Tuple
-    label: Union[torch.Tensor, int]
 
     def _assert_same_len(self):
         assert len(set([len(t) for t in self])) == 1
@@ -95,7 +94,6 @@ class MultiViewMatchingBatch(NamedTuple):
             perm_biases_view_1=tuple(w.to(device) for w in self.perm_biases_view_1),
             perms_view_0=tuple(w.to(device) for w in self.perms_view_0),
             perms_view_1=tuple(w.to(device) for w in self.perms_view_1),
-            label=self.label.to(device) if isinstance(self.label, torch.Tensor) else self.label,
         )
 
     def get_weight_shapes(self):
@@ -753,20 +751,19 @@ class MatchingModelsDataset(INRDataset):
         path,
         split="train",
         normalize=False,
-        augmentation=True,  # NOTE: always true, it's here for compatibility
-        permutation=True,  # NOTE: always true, it's here for compatibility
         statistics_path=None,
         noise_scale=1e-2,
         drop_rate=5e-2,
         pos_scale=0.1,
         quantile_dropout=0.1,
+        **kwargs
     ):
         super().__init__(
             path=path,
             split=split,
             normalize=normalize,
-            augmentation=augmentation,
-            permutation=permutation,
+            augmentation=True,  # NOTE: always true, it's here for compatibility
+            permutation=True,   # NOTE: always true, it's here for compatibility
             statistics_path=statistics_path,
             translation_scale=0.,
             rotation_degree=0,
@@ -843,8 +840,6 @@ class MatchingModelsDataset(INRDataset):
             # permutation labels
             perms_view_0=data_dict_0["perms"],
             perms_view_1=data_dict_1["perms"],
-            # class label from first view
-            label=data_dict_0["label"],  # todo: add label for seconds view (do this also for the INR datasets?)
         )
 
 

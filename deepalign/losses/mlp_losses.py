@@ -198,7 +198,7 @@ def calc_lookahead_loss(
     return loss
 
 
-def calc_gt_perm_loss(pred_perms, gt_perms, criterion, device):
+def calc_gt_perm_loss(pred_perms, gt_perms, device, criterion="ce"):
     """CE/MSE loss between the predicted permutations and the ground truth permutations.
 
     """

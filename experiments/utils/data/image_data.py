@@ -53,7 +53,7 @@ def get_svhn_dataloaders(path, batch_size, val_size=5000, train_size=None, num_w
     return train_loader, val_loader, test_loader
 
 
-def get_mnist_dataloaders(data_path, batch_size, val_size=0.1, num_workers=4):
+def get_mnist_dataloaders(data_path, batch_size, val_size=0.1, num_workers=4, allow_download=False):
     normalization = transforms.Normalize(
         (0.1307,), (0.3081,)
     )
@@ -65,7 +65,7 @@ def get_mnist_dataloaders(data_path, batch_size, val_size=0.1, num_workers=4):
     dataset = MNIST(
         data_path,
         train=True,
-        download=False,
+        download=allow_download,
         transform=transform,
     )
 
@@ -94,7 +94,7 @@ def get_mnist_dataloaders(data_path, batch_size, val_size=0.1, num_workers=4):
         MNIST(
             data_path,
             train=False,
-            download=False,
+            download=allow_download,
             transform=transform
         ),
         batch_size=batch_size,

@@ -21,12 +21,39 @@ cd deep-align
 pip install -e .
 ```
 
-## MLP experiments
+## Introduction Notebook
+An introduction notebook for MNIST MLPs alignment with DEEP-ALIGN: 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/AvivNavon/deep-align/blob/main/notebooks/train-mnist-mlp.ipynb)
 
-To run the MLP experiments, use the following command:
+## Experiments
+
+### MNIST MLP 
+
+To run the MLP experiments, first download the data:
+
+```shell
+mkdir dataset
+cd dataset
+wget https://www.dropbox.com/sh/56pakaxe58z29mq/AABtWNkRYroLYe_cE3c90DXVa?dl=0 -O mnist_classifiers.zip
+unzip -q mnist_classifiers.zip
+```
+
+Split data:
+
+```shell
+python experiments/utils/data/generate_splits.py --data-root dataset/mnist_classifiers --save-path dataset/splits.json
+```
+
+Next, use the following command:
 
 ```bash
 cd experiments/mlp_image_classifier
+python trainer.py --data-path <path-to-splits-splits.json>  --image-data-path=<path-to-mnist-dataset> --no-wandb
+```
+Or log runs to wandb:
+
+```bash
+python trainer.py --data-path <path-to-splits-splits.json>  --image-data-path=<path-to-mnist-dataset> --wandb-entity=<wandb-entity> --wandb-project=<wandb-project>
 ```
 
 ## Credits

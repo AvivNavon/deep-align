@@ -157,8 +157,6 @@ def main(
         path=path,
         split="train",
         normalize=args.normalize,
-        augmentation=args.augmentation,
-        permutation=args.permutation,
         statistics_path=args.statistics_path,
     )
     val_set = MatchingModelsDataset(
@@ -250,8 +248,6 @@ def main(
         ),
     }[args.optim]
 
-    epoch_iter = trange(epochs)
-
     def save_model(sd):
         path = Path(args.save_path)
         artifact_path = path / args.recon_loss / f"{args.seed}"
@@ -286,6 +282,7 @@ def main(
         with open(artifact_path / "model_config.json", "w") as f:
             json.dump(model_args, f)
 
+    epoch_iter = trange(epochs)
     best_test_results, best_val_results = None, None
     test_acc, test_loss = -1.0, -1.0
     best_val_recon_loss = 1e6
@@ -532,12 +529,6 @@ if __name__ == "__main__":
         help="path to dataset statistics",
     )
     parser.add_argument("--eval-every", type=int, default=5, help="eval every")
-    parser.add_argument(
-        "--augmentation", type=str2bool, default=False, help="use augmentation"
-    )
-    parser.add_argument(
-        "--permutation", type=str2bool, default=False, help="use permutations"
-    )
     parser.add_argument(
         "--normalize", type=str2bool, default=False, help="normalize data"
     )
