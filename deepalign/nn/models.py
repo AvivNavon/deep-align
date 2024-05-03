@@ -5,9 +5,9 @@ import torch
 from torch import nn
 
 from experiments.utils import count_parameters
-from nn.layers import (BN, CannibalLayer, DownSampleCannibalLayer, Dropout,
+from deepalign.nn.layers import (BN, CannibalLayer, DownSampleCannibalLayer, Dropout,
                        InvariantLayer, LeakyReLU, ReLU)
-from nn.layers.layers import NormalizeAndScale
+from deepalign.nn.layers.layers import NormalizeAndScale
 
 
 class SwapAxis(nn.Module):

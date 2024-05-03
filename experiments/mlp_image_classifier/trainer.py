@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import f1_score
 from tqdm import trange
 
-from deepalign.losses import calc_lmc_loss, calc_recon_loss, calc_gt_perm_loss
+from deepalign.losses.mlp_losses import calc_lmc_loss, calc_recon_loss, calc_gt_perm_loss
 from deepalign.utils import extract_pred
 from experiments.utils import (
     common_parser, count_parameters, get_device, set_logger, set_seed, str2bool,
@@ -331,7 +331,7 @@ def main(
                 add_l2_loss=add_l2_loss,
             )
 
-            loss = gt_perm_loss * args.perm_loss_weight + recon_loss * args.recon_loss_weight
+            loss = gt_perm_loss * args.supervised_loss_weight + recon_loss * args.recon_loss_weight
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
@@ -410,9 +410,9 @@ if __name__ == "__main__":
     parser = ArgumentParser("DEEP-ALIGN MLP matching trainer", parents=[common_parser])
     parser.set_defaults(
         data_path="",
-        lr=1e-3,
-        n_epochs=50,
-        batch_size=256,
+        lr=5e-4,
+        n_epochs=100,
+        batch_size=32,
     )
     parser.add_argument(
         "--image-data-path",
@@ -422,7 +422,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--image-batch-size",
         type=int,
-        default=64,
+        default=32,
         help="image batch size",
     )
     parser.add_argument(
@@ -436,7 +436,7 @@ if __name__ == "__main__":
         "--recon-loss",
         type=str,
         choices=["l2", "lmc", "both"],
-        default="lmc",
+        default="both",
         help="reconstruction loss type",
     )
     parser.add_argument(
@@ -453,7 +453,7 @@ if __name__ == "__main__":
         choices=["mnist", "cifar10"],
         help="dataset to use",
     )
-    parser.add_argument("--num-workers", type=int, default=16, help="num workers")
+    parser.add_argument("--num-workers", type=int, default=8, help="num workers")
     parser.add_argument(
         "--reduction",
         type=str,
@@ -464,7 +464,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dim-hidden",
         type=int,
-        default=32,
+        default=64,
         help="dim hidden layers",
     )
     parser.add_argument(
@@ -526,7 +526,7 @@ if __name__ == "__main__":
         default=None,
         help="path to dataset statistics",
     )
-    parser.add_argument("--eval-every", type=int, default=1, help="eval every")
+    parser.add_argument("--eval-every", type=int, default=5, help="eval every")
     parser.add_argument(
         "--augmentation", type=str2bool, default=False, help="use augmentation"
     )
@@ -550,7 +550,7 @@ if __name__ == "__main__":
         help="add per layer skip connection",
     )
     parser.add_argument(
-        "--add-bn", type=str2bool, default=False, help="add batch norm layers"
+        "--add-bn", type=str2bool, default=True, help="add batch norm layers"
     )
     parser.add_argument(
         "--save-model", type=str2bool, default=False, help="save model artifacts"
@@ -559,13 +559,13 @@ if __name__ == "__main__":
         "--logit-model", type=str2bool, default=False, help="use mlp over logits"
     )
     parser.add_argument(
-        "--diagonal", type=str2bool, default=False, help="diagonal DWSNet"
+        "--diagonal", type=str2bool, default=True, help="diagonal DWSNet"
     )
     parser.add_argument(
         "--hnp-setup", type=str2bool, default=True, help="HNP vs NP setup"
     )
     parser.add_argument(
-        "--sanity", type=str2bool, default=False, help="sanity check using INR and its perm"
+        "--sanity", type=str2bool, default=False, help="sanity check using a network and its perm"
     )
     parser.add_argument(
         "--init-scale", type=float, default=1.0, help="scale for weight initialization"
@@ -579,7 +579,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--input-dim-downsample",
         type=int,
-        default=None,
+        default=8,
         help="input downsampling dimension",
     )
     # loss options
@@ -590,7 +590,7 @@ if __name__ == "__main__":
         help="Reconstruction loss weight",
     )
     parser.add_argument(
-        "--perm-loss-weight",
+        "--supervised-loss-weight",
         type=float,
         default=1.0,
         help="Reconstruction loss weight",
@@ -600,18 +600,6 @@ if __name__ == "__main__":
         type=int,
         default=20,
         help="Num. Sink steps",
-    )
-    parser.add_argument(
-        "--sinkhorn-baseline-iter",
-        type=int,
-        default=100,
-        help="Sinkhorn baseline num iter",
-    )
-    parser.add_argument(
-        "--sinkhorn-baseline-lr",
-        type=float,
-        default=5e-2,
-        help="Sinkhorn baseline lr",
     )
     args = parser.parse_args()
 
