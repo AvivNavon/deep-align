@@ -1,9 +1,7 @@
 import copy
-import dataclasses
 import json
 import random
 from collections import defaultdict
-from pathlib import Path
 from typing import NamedTuple, Tuple, Union, List
 
 import numpy as np
@@ -12,8 +10,7 @@ import torch.nn.functional as F
 from torch.utils.data import Subset
 
 from experiments.utils import make_coordinates
-from experiments.utils.utils import unfold_matrices
-from nn.inr_models import INR
+from deepalign.nn.inr_models import INR
 
 
 class Batch(NamedTuple):
@@ -1258,8 +1255,8 @@ class SineINRDataset(INRDataset):
 
 
 if __name__ == '__main__':
-    from experiments.cnn_image_classifier.models import BatchFunctionalCNN, FmnistCNN
-    from experiments.utils.data.image_data import get_fashion_mnist_dataloaders, get_cifar10_dataloaders
+    from experiments.cnn_image_classifier.models import BatchFunctionalCNN
+    from experiments.utils.data.image_data import get_cifar10_dataloaders
 
 
     test = MatchingCNNModelsDataset(

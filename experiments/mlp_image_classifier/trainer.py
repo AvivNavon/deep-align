@@ -19,7 +19,7 @@ from experiments.utils import (
 from experiments.utils.data import MultiViewMatchingBatch, MatchingModelsDataset
 from deepalign.sinkhorn import matching
 from deepalign import DWSMatching
-from experiments.utils.data.image_data import get_mnist_dataloaders, get_cifar10_dataloaders
+from experiments.utils.data import get_mnist_dataloaders, get_cifar10_dataloaders
 
 set_logger()
 
