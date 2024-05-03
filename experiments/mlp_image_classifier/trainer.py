@@ -296,7 +296,6 @@ def main(
             optimizer.zero_grad()
 
             batch: MultiViewMatchingBatch = batch.to(device)
-            # todo: make sure this extracts new batch every call (also in evaluation on the test set)
             image_batch = next(iter(train_image_loader))
             image_batch = tuple(t.to(device) for t in image_batch)
 
@@ -356,11 +355,11 @@ def main(
 
         if (epoch + 1) % eval_every == 0:
             val_loss_dict = evaluate(
-                model, val_loader, image_loader=val_image_loader, n_sinkhorn_iter=args.n_sink,
+                model, val_loader, image_loader=val_image_loader,
                 add_task_loss=add_task_loss, add_l2_loss=add_l2_loss,
             )
             test_loss_dict = evaluate(
-                model, test_loader, image_loader=test_image_loader, n_sinkhorn_iter=args.n_sink,
+                model, test_loader, image_loader=test_image_loader,
                 add_task_loss=add_task_loss, add_l2_loss=add_l2_loss,
             )
             val_loss = val_loss_dict["avg_loss"]
