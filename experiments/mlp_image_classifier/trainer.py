@@ -379,7 +379,7 @@ def main(
 
             if args.wandb:
                 # LMC plot
-                x = torch.linspace(0.0, 1.0, len(test_loss_dict["lmc_losses"]["lmc_hard_recon_loss"])).numpy().tolist()
+                x = torch.linspace(0.0, 1.0, len(test_loss_dict["lmc_losses"]["alignment"])).numpy().tolist()
                 for k, v in test_loss_dict["lmc_losses"].items():
                     plt.plot(x, v, label=k)
                 plt.legend()
