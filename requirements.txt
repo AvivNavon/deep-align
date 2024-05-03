@@ -1,0 +1,11 @@
+numpy
+torch
+torchvision
+tqdm
+wandb
+random-fourier-features-pytorch
+scipy
+matplotlib
+black
+plotly
+scikit-learn
