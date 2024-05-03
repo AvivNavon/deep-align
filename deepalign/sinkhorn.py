@@ -10,7 +10,7 @@ from torchvision.utils import save_image
 from tqdm import tqdm
 
 from deepalign.utils import permute_weights, unsqueeze_like, avg_weights_and_biases
-from nn.inr_models import FunctionalINRForModelBatch
+from deepalign.nn.inr_models import FunctionalINRForModelBatch
 from experiments.mlp_image_classifier.models import FCNet
 
 
