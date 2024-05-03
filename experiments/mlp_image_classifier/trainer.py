@@ -59,7 +59,7 @@ def evaluate(model, loader, image_loader, add_task_loss=True, add_l2_loss=True):
 
         # loss from GT permutations
         curr_gt_loss = calc_gt_perm_loss(
-            pred_matrices_perm_0, batch.perms_view_0, criterion=args.loss,
+            pred_matrices_perm_0, batch.perms_view_0, criterion=args.loss, device=device
         )
 
         # reconstruction loss
@@ -74,6 +74,8 @@ def evaluate(model, loader, image_loader, add_task_loss=True, add_l2_loss=True):
             add_l2_loss=add_l2_loss,
             alpha=0.5,
             eval_mode=True,
+            device=device,
+            image_flatten_size=image_flatten_size,
         )
 
         # reconstruction loss and images
@@ -84,6 +86,8 @@ def evaluate(model, loader, image_loader, add_task_loss=True, add_l2_loss=True):
             image_batch=image_batch,
             sinkhorn_project=True,
             n_sinkhorn_iter=args.n_sink,
+            device=device,
+            image_flatten_size=image_flatten_size,
         )
 
         recon_losses.append(results["soft"]["losses"])
@@ -316,7 +320,7 @@ def main(
 
             # loss from GT permutations
             gt_perm_loss = calc_gt_perm_loss(
-                pred_matrices_perm_0, batch.perms_view_0, criterion=args.loss,
+                pred_matrices_perm_0, batch.perms_view_0, criterion=args.loss, device=device
             )
 
             # reconstruction loss
@@ -329,6 +333,8 @@ def main(
                 n_sinkhorn_iter=args.n_sink,
                 add_task_loss=add_task_loss,
                 add_l2_loss=add_l2_loss,
+                device=device,
+                image_flatten_size=image_flatten_size,
             )
 
             loss = gt_perm_loss * args.supervised_loss_weight + recon_loss * args.recon_loss_weight

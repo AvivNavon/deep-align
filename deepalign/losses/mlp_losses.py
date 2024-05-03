@@ -5,11 +5,10 @@ from torch.nn import functional as F
 from deepalign.utils import permute_weights, avg_weights_and_biases
 from deepalign.sinkhorn import Sinkhorn, matching, CLFBatchSinkhorn
 from experiments.mlp_image_classifier.models import FCNet
-from experiments.mlp_image_classifier.trainer import device, image_flatten_size
 
 
 def get_lmc_loss_and_preds_from_permutations(
-        perm, inputs_view_0, inputs_view_1, functional_model, image_batch, n_steps=16
+        perm, inputs_view_0, inputs_view_1, functional_model, image_batch, device, n_steps=16
 ):
     if perm is not None:
         permuted_weights, permuted_biases = permute_weights(
@@ -48,7 +47,7 @@ def get_lmc_loss_and_preds_from_permutations(
 
 
 def calc_lmc_loss(
-        pred_perm, inputs_view_0, inputs_view_1, image_batch, sinkhorn_project=True,
+        pred_perm, inputs_view_0, inputs_view_1, image_batch, image_flatten_size, device, sinkhorn_project=True,
         n_sinkhorn_iter=20, tau=1., n_steps=16,
 ):
     """This function calculates the reconstruction loss and the reconstruction images for a sequence of
@@ -79,15 +78,17 @@ def calc_lmc_loss(
     # soft ours
     recon_losses, recon_preds = get_lmc_loss_and_preds_from_permutations(
         pred_cp if sinkhorn_project else pred_perm, inputs_view_0, inputs_view_1,
-        functional_model, image_batch=image_batch, n_steps=n_steps
+        functional_model, image_batch=image_batch, n_steps=n_steps, device=device
     )
     # exact "hard" ours
     hard_recon_losses, hard_recon_preds = get_lmc_loss_and_preds_from_permutations(
-        hard_pred_perm, inputs_view_0, inputs_view_1, functional_model, image_batch=image_batch, n_steps=n_steps
+        hard_pred_perm, inputs_view_0, inputs_view_1, functional_model, image_batch=image_batch, n_steps=n_steps,
+        device=device
     )
     # now perm baseline
     baseline_losses, baseline_recon_preds = get_lmc_loss_and_preds_from_permutations(
-        None, inputs_view_0, inputs_view_1, functional_model, image_batch=image_batch, n_steps=n_steps
+        None, inputs_view_0, inputs_view_1, functional_model, image_batch=image_batch, n_steps=n_steps,
+        device=device
     )
 
     results = {
@@ -100,7 +101,7 @@ def calc_lmc_loss(
 
 
 def calc_recon_loss(
-        pred_perm, inputs_view_0, inputs_view_1, image_batch, sinkhorn_project=True,
+        pred_perm, inputs_view_0, inputs_view_1, image_batch, image_flatten_size, device, sinkhorn_project=True,
         n_sinkhorn_iter=20, tau=1., alpha=None, add_task_loss=True, add_l2_loss=True,
         eval_mode=False
 ):
@@ -162,7 +163,7 @@ def calc_recon_loss(
 
 
 def calc_lookahead_loss(
-    pred_perm, inputs_view_0, inputs_view_1, image_batch,
+    pred_perm, inputs_view_0, inputs_view_1, image_batch, device,
     n_sinkhorn_iter=20,
     n_lookahead_iter=25, lookahead_lr=5e-2,
     add_task_loss=True, add_l2_loss=True, loss_type="mse",
@@ -197,7 +198,7 @@ def calc_lookahead_loss(
     return loss
 
 
-def calc_gt_perm_loss(pred_perms, gt_perms, criterion):
+def calc_gt_perm_loss(pred_perms, gt_perms, criterion, device):
     """CE/MSE loss between the predicted permutations and the ground truth permutations.
 
     """
