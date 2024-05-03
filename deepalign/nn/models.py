@@ -43,13 +43,9 @@ class DWSModel(nn.Module):
         hnp_setup=True,
     ):
         super().__init__()
-        print(
-            "the current implementation for diverse architectures assumes the "
-            "initilization shapes are for networks with M>=4 layers."
-        )
         assert (
-            len(weight_shapes) >= 4
-        ), "the current implementation for diverse architectures assumes the initilization shapes are for networks with M>=4 layers."
+                len(weight_shapes) > 2
+        ), "the current implementation only support input networks with M>2 layers."
 
         if not hnp_setup:
             assert input_dim_downsample is None, "input_dim_downsample must be None for np_setup is False"
