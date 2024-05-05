@@ -32,16 +32,15 @@ An introduction notebook for MNIST MLPs alignment with DEEP-ALIGN:
 To run the MLP experiments, first download the data:
 
 ```shell
-mkdir dataset
-cd dataset
-wget https://www.dropbox.com/sh/56pakaxe58z29mq/AABtWNkRYroLYe_cE3c90DXVa?dl=0 -O mnist_classifiers.zip
-unzip -q mnist_classifiers.zip
+mkdir datasets
+wget "https://www.dropbox.com/s/sv85hrjswaspok4/mnist_classifiers.zip"
+unzip -q mnist_classifiers.zip -d datasets
 ```
 
 Split data:
 
 ```shell
-python experiments/utils/data/generate_splits.py --data-root dataset/mnist_classifiers --save-path dataset/splits.json
+python experiments/utils/data/generate_splits.py --data-root datasets/mnist_classifiers --save-path datasets/splits.json
 ```
 
 Next, use the following command:
