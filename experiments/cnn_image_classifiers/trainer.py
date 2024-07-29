@@ -158,8 +158,6 @@ def main(
         path=path,
         split="train",
         normalize=args.normalize,
-        augmentation=args.augmentation,
-        permutation=args.permutation,
         statistics_path=args.statistics_path,
         quantile_dropout=args.quantile_dropout,
     )
