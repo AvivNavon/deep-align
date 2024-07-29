@@ -11,21 +11,21 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import f1_score
 from tqdm import trange
 
-from deepalign.losses.mlp_losses import calc_lmc_loss, calc_recon_loss, calc_gt_perm_loss
+from deepalign.losses.cnn_losses import calc_lmc_loss, calc_recon_loss, calc_gt_perm_loss
 from deepalign.utils import extract_pred
 from experiments.utils import (
     common_parser, count_parameters, get_device, set_logger, set_seed, str2bool,
 )
-from experiments.utils.data import MultiViewMatchingBatch, MatchingModelsDataset
+from experiments.utils.data import MultiViewCNNMatchingBatch, MatchingCNNModelsDataset
 from deepalign.sinkhorn import matching
 from deepalign import DWSMatching
-from experiments.utils.data.image_data import get_mnist_dataloaders, get_cifar10_dataloaders
+from experiments.utils.data.image_data import get_cifar10_dataloaders, get_stl10_dataloaders
 
 set_logger()
 
 
 @torch.no_grad()
-def evaluate(model, loader, image_loader, add_task_loss=True, add_l2_loss=True):
+def evaluate(model, loader, image_loader, model_name, add_task_loss=True, add_l2_loss=True):
     model.eval()
 
     perm_loss = 0.0
@@ -37,10 +37,12 @@ def evaluate(model, loader, image_loader, add_task_loss=True, add_l2_loss=True):
     for j, batch in enumerate(loader):
         image_batch = next(iter(image_loader))
         image_batch = tuple(t.to(device) for t in image_batch)
-        batch: MultiViewMatchingBatch = batch.to(device)
+        batch: MultiViewCNNMatchingBatch = batch.to(device)
 
         input_0 = (batch.weights_view_0, batch.biases_view_0)
         input_1 = (batch.weights_view_1, batch.biases_view_1)
+        unpadded_input_0 = (batch.unpadded_weights_view_0, batch.unpadded_biases_view_0)
+        unpadded_input_1 = (batch.unpadded_weights_view_1, batch.unpadded_biases_view_1)
         perm_input_0 = (batch.perm_weights_view_0, batch.perm_biases_view_0)
 
         out_0 = model(input_0)
@@ -64,9 +66,9 @@ def evaluate(model, loader, image_loader, add_task_loss=True, add_l2_loss=True):
 
         # reconstruction loss
         curr_recon_loss = calc_recon_loss(
-            pred_matrices if not args.sanity else pred_matrices_perm_0,
-            input_0,
-            input_1 if not args.sanity else perm_input_0,
+            pred_perm=pred_matrices,
+            unpadded_input_view_0=unpadded_input_0,
+            unpadded_input_view_1=unpadded_input_1,
             image_batch=image_batch,
             sinkhorn_project=True,
             n_sinkhorn_iter=args.n_sink,
@@ -75,19 +77,19 @@ def evaluate(model, loader, image_loader, add_task_loss=True, add_l2_loss=True):
             alpha=0.5,
             eval_mode=True,
             device=device,
-            image_flatten_size=image_flatten_size,
+            model_name=model_name,
         )
 
         # reconstruction loss and images
         results = calc_lmc_loss(
-            pred_matrices if not args.sanity else pred_matrices_perm_0,
-            input_0,
-            input_1 if not args.sanity else perm_input_0,
+            pred_matrices,
+            unpadded_input_0,
+            unpadded_input_1,
             image_batch=image_batch,
             sinkhorn_project=True,
             n_sinkhorn_iter=args.n_sink,
             device=device,
-            image_flatten_size=image_flatten_size,
+            model_name=model_name,
         )
 
         recon_losses.append(results["soft"]["losses"])
@@ -146,6 +148,7 @@ def main(
     batch_size: int,
     device,
     eval_every: int,
+    model_name: str
 ):
     # losses
     add_l2_loss = True if args.recon_loss in ["l2", "both"] else False
@@ -153,23 +156,26 @@ def main(
     logging.info(f"Using {args.recon_loss} loss (task loss: {add_task_loss}, l2 loss: {add_l2_loss})")
 
     # load dataset
-    train_set = MatchingModelsDataset(
+    train_set = MatchingCNNModelsDataset(
         path=path,
         split="train",
         normalize=args.normalize,
         statistics_path=args.statistics_path,
+        quantile_dropout=args.quantile_dropout,
     )
-    val_set = MatchingModelsDataset(
+    val_set = MatchingCNNModelsDataset(
         path=path,
         split="val",
         normalize=args.normalize,
         statistics_path=args.statistics_path,
+        quantile_dropout=args.quantile_dropout,
     )
-    test_set = MatchingModelsDataset(
+    test_set = MatchingCNNModelsDataset(
         path=path,
         split="test",
         normalize=args.normalize,
         statistics_path=args.statistics_path,
+        quantile_dropout=args.quantile_dropout,
     )
 
     train_loader = torch.utils.data.DataLoader(
@@ -191,8 +197,10 @@ def main(
         num_workers=args.num_workers,
         pin_memory=True,
     )
-    # todo: add image args to argparse
-    get_loaders = dict(mnist=get_mnist_dataloaders, cifar10=get_cifar10_dataloaders)[args.data_name]
+    get_loaders = dict(
+        cifar10=get_cifar10_dataloaders,
+        stl10=get_stl10_dataloaders,
+    )[args.data_name]
     train_image_loader, val_image_loader, test_image_loader = get_loaders(
         args.image_data_path, batch_size=args.image_batch_size
     )
@@ -204,31 +212,31 @@ def main(
     )
 
     batch = next(iter(train_loader))
-    weight_shapes, bias_shapes = batch.get_weight_shapes()
+    weight_shapes, bias_shapes, input_features = batch.get_weight_shapes()
 
-    logging.info(f"weight shapes: {weight_shapes}, bias shapes: {bias_shapes}")
+    logging.info(f"input features: {input_features}, weight shapes: {weight_shapes}, bias shapes: {bias_shapes}")
 
     model = DWSMatching(
-            weight_shapes=weight_shapes,
-            bias_shapes=bias_shapes,
-            input_features=1,
-            hidden_dim=args.dim_hidden,
-            n_hidden=args.n_hidden,
-            reduction=args.reduction,
-            n_fc_layers=args.n_fc_layers,
-            set_layer=args.set_layer,
-            output_features=args.output_features
-            if args.output_features is not None
-            else args.dim_hidden,
-            input_dim_downsample=args.input_dim_downsample,
-            add_skip=args.add_skip,
-            add_layer_skip=args.add_layer_skip,
-            init_scale=args.init_scale,
-            init_off_diag_scale_penalty=args.init_off_diag_scale,
-            bn=args.add_bn,
-            diagonal=args.diagonal,
-            hnp_setup=args.hnp_setup,
-        ).to(device)
+        weight_shapes=weight_shapes,
+        bias_shapes=bias_shapes,
+        input_features=input_features,
+        hidden_dim=args.dim_hidden,
+        n_hidden=args.n_hidden,
+        reduction=args.reduction,
+        n_fc_layers=args.n_fc_layers,
+        set_layer=args.set_layer,
+        output_features=args.output_features
+        if args.output_features is not None
+        else args.dim_hidden,
+        input_dim_downsample=args.input_dim_downsample,
+        add_skip=args.add_skip,
+        add_layer_skip=args.add_layer_skip,
+        init_scale=args.init_scale,
+        init_off_diag_scale_penalty=args.init_off_diag_scale,
+        bn=args.add_bn,
+        diagonal=args.diagonal,
+        hnp_setup=args.hnp_setup,
+    ).to(device)
 
     logging.info(f"number of parameters: {count_parameters(model)}")
 
@@ -261,7 +269,7 @@ def main(
         model_args = dict(
             weight_shapes=weight_shapes,
             bias_shapes=bias_shapes,
-            input_features=1,
+            input_features=input_features,
             hidden_dim=args.dim_hidden,
             n_hidden=args.n_hidden,
             reduction=args.reduction,
@@ -292,12 +300,14 @@ def main(
             model.train()
             optimizer.zero_grad()
 
-            batch: MultiViewMatchingBatch = batch.to(device)
+            batch: MultiViewCNNMatchingBatch = batch.to(device)
             image_batch = next(iter(train_image_loader))
             image_batch = tuple(t.to(device) for t in image_batch)
 
             input_0 = (batch.weights_view_0, batch.biases_view_0)
             input_1 = (batch.weights_view_1, batch.biases_view_1)
+            unpadded_input_0 = (batch.unpadded_weights_view_0, batch.unpadded_biases_view_0)
+            unpadded_input_1 = (batch.unpadded_weights_view_1, batch.unpadded_biases_view_1)
             perm_input_0 = (batch.perm_weights_view_0, batch.perm_biases_view_0)
 
             out_0 = model(input_0)
@@ -322,15 +332,15 @@ def main(
             # reconstruction loss
             recon_loss = calc_recon_loss(
                 pred_matrices if not args.sanity else pred_matrices_perm_0,
-                input_0,
-                input_1 if not args.sanity else perm_input_0,
+                unpadded_input_view_0=unpadded_input_0,
+                unpadded_input_view_1=unpadded_input_1,
                 image_batch=image_batch,
-                sinkhorn_project=True,   # if we perms are already bi-stochastic we don't need to do anything
+                sinkhorn_project=True,  # if we perms are already bi-stochastic we don't need to do anything
                 n_sinkhorn_iter=args.n_sink,
                 add_task_loss=add_task_loss,
                 add_l2_loss=add_l2_loss,
                 device=device,
-                image_flatten_size=image_flatten_size,
+                model_name=model_name,
             )
 
             loss = gt_perm_loss * args.supervised_loss_weight + recon_loss * args.recon_loss_weight
@@ -354,10 +364,12 @@ def main(
             val_loss_dict = evaluate(
                 model, val_loader, image_loader=val_image_loader,
                 add_task_loss=add_task_loss, add_l2_loss=add_l2_loss,
+                model_name=model_name,
             )
             test_loss_dict = evaluate(
                 model, test_loader, image_loader=test_image_loader,
                 add_task_loss=add_task_loss, add_l2_loss=add_l2_loss,
+                model_name=model_name,
             )
             val_loss = val_loss_dict["avg_loss"]
             val_acc = val_loss_dict["avg_acc"]
@@ -409,12 +421,12 @@ def main(
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser("DEEP-ALIGN MLP matching trainer", parents=[common_parser])
+    parser = ArgumentParser("DEEP-ALIGN CNN (and VGG) matching trainer", parents=[common_parser])
     parser.set_defaults(
         data_path="",
         lr=5e-4,
-        n_epochs=100,
-        batch_size=32,
+        n_epochs=300,
+        batch_size=64,
     )
     parser.add_argument(
         "--image-data-path",
@@ -424,7 +436,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--image-batch-size",
         type=int,
-        default=32,
+        default=128,
         help="image batch size",
     )
     parser.add_argument(
@@ -451,8 +463,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data-name",
         type=str,
-        default="mnist",
-        choices=["mnist", "cifar10"],
+        default="cifar10",
+        choices=["cifar10", "stl10"],
         help="dataset to use",
     )
     parser.add_argument("--num-workers", type=int, default=8, help="num workers")
@@ -507,6 +519,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--normalize", type=str2bool, default=False, help="normalize data"
     )
+    parser.add_argument(
+        "--normalize-output", type=str2bool, default=True, help="normalize data"
+    )
     parser.add_argument("--do-rate", type=float, default=0.0, help="dropout rate")
     parser.add_argument(
         "--add-skip", type=str2bool, default=False, help="add skip connection"
@@ -544,7 +559,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--input-dim-downsample",
         type=int,
-        default=8,
+        default=None,
         help="input downsampling dimension",
     )
     # loss options
@@ -566,6 +581,13 @@ if __name__ == "__main__":
         default=20,
         help="Num. Sink steps",
     )
+    parser.add_argument(
+        "--quantile-dropout",
+        type=float,
+        default=0.0,
+        help="Quantile dropout",
+    )
+    parser.add_argument("--model-name", type=str, default="vgg16", choices=["vgg16", "vgg11", "cnn"], help="model name")
     args = parser.parse_args()
 
     # set seed
@@ -573,7 +595,7 @@ if __name__ == "__main__":
     # wandb
     if args.wandb:
         name = (
-            f"mlp_cls_trainer_{args.data_name}_lr_{args.lr}_bs_{args.batch_size}_seed_{args.seed}"
+            f"cnn_cls_trainer_{args.model_name}_{args.data_name}_lr_{args.lr}_bs_{args.batch_size}_seed_{args.seed}"
         )
         wandb.init(
             project=args.wandb_project,
@@ -584,9 +606,7 @@ if __name__ == "__main__":
         wandb.config.update(args)
 
     device = get_device(gpus=args.gpu)
-
-    logging.info(f"Using {args.data_name} dataset")
-    image_flatten_size = dict(mnist=28 * 28, cifar10=32 * 32 * 3)[args.data_name]
+    logging.info(f"Using {args.data_name} dataset, and model {args.model_name}")
 
     main(
         path=args.data_path,
@@ -595,4 +615,5 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         eval_every=args.eval_every,
         device=device,
+        model_name=args.model_name,
     )
