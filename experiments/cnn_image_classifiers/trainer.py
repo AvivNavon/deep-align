@@ -41,6 +41,8 @@ def evaluate(model, loader, image_loader, model_name, add_task_loss=True, add_l2
 
         input_0 = (batch.weights_view_0, batch.biases_view_0)
         input_1 = (batch.weights_view_1, batch.biases_view_1)
+        unpadded_input_0 = (batch.unpadded_weights_view_0, batch.unpadded_biases_view_0)
+        unpadded_input_1 = (batch.unpadded_weights_view_1, batch.unpadded_biases_view_1)
         perm_input_0 = (batch.perm_weights_view_0, batch.perm_biases_view_0)
 
         out_0 = model(input_0)
@@ -64,9 +66,9 @@ def evaluate(model, loader, image_loader, model_name, add_task_loss=True, add_l2
 
         # reconstruction loss
         curr_recon_loss = calc_recon_loss(
-            pred_matrices if not args.sanity else pred_matrices_perm_0,
-            input_0,
-            input_1 if not args.sanity else perm_input_0,
+            pred_perm=pred_matrices,
+            unpadded_input_view_0=unpadded_input_0,
+            unpadded_input_view_1=unpadded_input_1,
             image_batch=image_batch,
             sinkhorn_project=True,
             n_sinkhorn_iter=args.n_sink,
@@ -80,9 +82,9 @@ def evaluate(model, loader, image_loader, model_name, add_task_loss=True, add_l2
 
         # reconstruction loss and images
         results = calc_lmc_loss(
-            pred_matrices if not args.sanity else pred_matrices_perm_0,
-            input_0,
-            input_1 if not args.sanity else perm_input_0,
+            pred_matrices,
+            unpadded_input_0,
+            unpadded_input_1,
             image_batch=image_batch,
             sinkhorn_project=True,
             n_sinkhorn_iter=args.n_sink,
@@ -304,6 +306,8 @@ def main(
 
             input_0 = (batch.weights_view_0, batch.biases_view_0)
             input_1 = (batch.weights_view_1, batch.biases_view_1)
+            unpadded_input_0 = (batch.unpadded_weights_view_0, batch.unpadded_biases_view_0)
+            unpadded_input_1 = (batch.unpadded_weights_view_1, batch.unpadded_biases_view_1)
             perm_input_0 = (batch.perm_weights_view_0, batch.perm_biases_view_0)
 
             out_0 = model(input_0)
@@ -328,10 +332,10 @@ def main(
             # reconstruction loss
             recon_loss = calc_recon_loss(
                 pred_matrices if not args.sanity else pred_matrices_perm_0,
-                input_0,
-                input_1 if not args.sanity else perm_input_0,
+                unpadded_input_view_0=unpadded_input_0,
+                unpadded_input_view_1=unpadded_input_1,
                 image_batch=image_batch,
-                sinkhorn_project=True,   # if we perms are already bi-stochastic we don't need to do anything
+                sinkhorn_project=True,  # if we perms are already bi-stochastic we don't need to do anything
                 n_sinkhorn_iter=args.n_sink,
                 add_task_loss=add_task_loss,
                 add_l2_loss=add_l2_loss,
