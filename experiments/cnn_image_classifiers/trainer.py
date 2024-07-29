@@ -421,8 +421,8 @@ if __name__ == "__main__":
     parser.set_defaults(
         data_path="",
         lr=5e-4,
-        n_epochs=100,
-        batch_size=32,
+        n_epochs=300,
+        batch_size=64,
     )
     parser.add_argument(
         "--image-data-path",
@@ -432,7 +432,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--image-batch-size",
         type=int,
-        default=32,
+        default=128,
         help="image batch size",
     )
     parser.add_argument(
@@ -459,8 +459,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data-name",
         type=str,
-        default="mnist",
-        choices=["mnist", "cifar10"],
+        default="cifar10",
+        choices=["cifar10", "stl10"],
         help="dataset to use",
     )
     parser.add_argument("--num-workers", type=int, default=8, help="num workers")
@@ -484,12 +484,6 @@ if __name__ == "__main__":
         help="num hidden layers",
     )
     parser.add_argument(
-        "--n-recurrent",
-        type=int,
-        default=2,
-        help="num recurrent",
-    )
-    parser.add_argument(
         "--output-features", type=int, default=128, help="output features"
     )
     parser.add_argument(
@@ -499,30 +493,11 @@ if __name__ == "__main__":
         help="num linear layers at each ff block",
     )
     parser.add_argument(
-        "--n-out-fc",
-        type=int,
-        default=1,
-        help="num linear layers at final layer (invariant block)",
-    )
-    parser.add_argument(
         "--set-layer",
         type=str,
         default="sab",
         choices=["sab", "ds"],
         help="set layer",
-    )
-
-    parser.add_argument(
-        "--n-encode-layers",
-        type=int,
-        default=8,
-        help="number of transformer encoder layers",
-    )
-    parser.add_argument(
-        "--hid-ff",
-        type=int,
-        default=1024,
-        help="attntion hidd dim",
     )
     parser.add_argument(
         "--n-heads",
@@ -560,9 +535,6 @@ if __name__ == "__main__":
         "--save-model", type=str2bool, default=False, help="save model artifacts"
     )
     parser.add_argument(
-        "--logit-model", type=str2bool, default=False, help="use mlp over logits"
-    )
-    parser.add_argument(
         "--diagonal", type=str2bool, default=True, help="diagonal DWSNet"
     )
     parser.add_argument(
@@ -583,7 +555,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--input-dim-downsample",
         type=int,
-        default=8,
+        default=None,
         help="input downsampling dimension",
     )
     # loss options
