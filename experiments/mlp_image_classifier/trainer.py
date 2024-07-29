@@ -476,12 +476,6 @@ if __name__ == "__main__":
         help="num hidden layers",
     )
     parser.add_argument(
-        "--n-recurrent",
-        type=int,
-        default=2,
-        help="num recurrent",
-    )
-    parser.add_argument(
         "--output-features", type=int, default=128, help="output features"
     )
     parser.add_argument(
@@ -491,30 +485,11 @@ if __name__ == "__main__":
         help="num linear layers at each ff block",
     )
     parser.add_argument(
-        "--n-out-fc",
-        type=int,
-        default=1,
-        help="num linear layers at final layer (invariant block)",
-    )
-    parser.add_argument(
         "--set-layer",
         type=str,
         default="sab",
         choices=["sab", "ds"],
         help="set layer",
-    )
-
-    parser.add_argument(
-        "--n-encode-layers",
-        type=int,
-        default=8,
-        help="number of transformer encoder layers",
-    )
-    parser.add_argument(
-        "--hid-ff",
-        type=int,
-        default=1024,
-        help="attntion hidd dim",
     )
     parser.add_argument(
         "--n-heads",
@@ -532,9 +507,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--normalize", type=str2bool, default=False, help="normalize data"
     )
-    parser.add_argument(
-        "--normalize-output", type=str2bool, default=True, help="normalize data"
-    )
     parser.add_argument("--do-rate", type=float, default=0.0, help="dropout rate")
     parser.add_argument(
         "--add-skip", type=str2bool, default=False, help="add skip connection"
@@ -550,9 +522,6 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--save-model", type=str2bool, default=False, help="save model artifacts"
-    )
-    parser.add_argument(
-        "--logit-model", type=str2bool, default=False, help="use mlp over logits"
     )
     parser.add_argument(
         "--diagonal", type=str2bool, default=True, help="diagonal DWSNet"
