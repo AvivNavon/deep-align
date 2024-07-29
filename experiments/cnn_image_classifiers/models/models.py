@@ -169,8 +169,3 @@ class BatchFunctionalVGG(nn.Module):
             x = torch.vmap(linear)(w.squeeze(-1).transpose(1, 2), b.squeeze(-1), x)
 
         return x  # (bs models, bs images, n classes)
-
-
-if __name__ == '__main__':
-    from experiments.utils.utils import count_parameters
-    print(count_parameters(LargeCNNs()))
