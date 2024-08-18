@@ -27,6 +27,13 @@ An introduction notebook for MNIST MLPs alignment with DEEP-ALIGN:
 
 ## Experiments
 
+### Datasets
+
+We have released the following datasets:
+1. [MNIST MLP](https://www.dropbox.com/s/sv85hrjswaspok4/mnist_classifiers.zip)
+2. [CIFAR10 MLP](https://www.dropbox.com/s/lxy11dgi8epn731/cifar10_mlps.zip)
+3. [CIFAR10 CNN](https://www.dropbox.com/scl/fi/gv8z6pvlj5t927opxx6w4/cifar10_cnns.zip)
+
 ### MNIST MLP 
 
 To run the MLP experiments, first download the data:
